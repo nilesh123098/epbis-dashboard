@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPBIS Power BI Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0A1628;
+    --navy2: #0F2040;
+    --teal: #0E7FD4;
+    --teal2: #1AA3E8;
+    --gold: #F5A623;
+    --emerald: #00C48C;
+    --crimson: #FF4D6D;
+    --purple: #A855F7;
+    --orange: #F97316;
+    --slate: #1E2D42;
+    --slate2: #253550;
+    --border: rgba(14,127,212,0.18);
+    --text: #E8F1FF;
+    --text2: #8BA4C0;
+    --text3: #5A7A9A;
+    --card: rgba(15,32,64,0.85);
+    --glow: rgba(14,127,212,0.25);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 10%, rgba(14,127,212,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 80%, rgba(168,85,247,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,196,140,0.04) 0%, transparent 50%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    position: sticky; top:0; z-index:100;
+    background: rgba(10,22,40,0.97);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    height: 56px;
+    gap: 0;
+  }
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--teal2);
+    white-space: nowrap;
+    margin-right: 32px;
+    flex-shrink: 0;
+  }
+  .logo span { color: var(--gold); }
+  .tabs {
+    display: flex; gap: 2px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab {
+    padding: 8px 18px;
+    font-size: 12.5px; font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-radius: 6px;
+    white-space: nowrap;
+    color: var(--text2);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .tab:hover { color: var(--text); background: rgba(14,127,212,0.1); }
+  .tab.active {
+    color: var(--teal2);
+    background: rgba(14,127,212,0.15);
+    border-color: rgba(14,127,212,0.4);
+  }
+  .tab-icon { font-size: 14px; }
+  .badge {
+    font-size: 9px; padding: 2px 6px;
+    border-radius: 10px; font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .badge-sales { background: rgba(14,127,212,0.3); color: var(--teal2); }
+  .badge-p1 { background: rgba(245,166,35,0.25); color: var(--gold); }
+  .badge-p2 { background: rgba(255,77,109,0.25); color: var(--crimson); }
+  .badge-p3 { background: rgba(0,196,140,0.25); color: var(--emerald); }
+  .badge-p4 { background: rgba(168,85,247,0.25); color: var(--purple); }
+  .badge-p5 { background: rgba(249,115,22,0.25); color: var(--orange); }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .live-tag {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--emerald);
+    font-weight: 600; letter-spacing: 1px;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--emerald);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(1.3); }
+  }
+  .date-tag { font-size: 11px; color: var(--text3); }
+
+  /* ── PAGES ── */
+  .page { display:none; padding: 20px 24px 32px; position:relative; z-index:1; animation: fadeIn 0.3s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 26px; font-weight: 700;
+    letter-spacing: 1.5px;
+    line-height: 1;
+  }
+  .page-subtitle { font-size: 12px; color: var(--text3); margin-top: 5px; letter-spacing: 0.5px; }
+  .page-meta { font-size: 11px; color: var(--text3); text-align:right; }
+  .color-bar {
+    height: 3px; border-radius: 2px;
+    margin-top: 8px;
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .kpi-card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:2px;
+    background: var(--accent-color, var(--teal));
+  }
+  .kpi-card::after {
+    content:'';
+    position:absolute; bottom:-20px; right:-20px;
+    width:80px; height:80px; border-radius:50%;
+    background: var(--accent-color, var(--teal));
+    opacity:0.05;
+  }
+  .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700; line-height: 1; }
+  .kpi-sub { font-size: 10px; color: var(--text3); margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+  .delta-up { color: var(--emerald); }
+  .delta-dn { color: var(--crimson); }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .span-2 { grid-column: span 2; }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+  }
+  .chart-card-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .chart-card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .chart-card-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+  .chart-tag {
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .ct-line { background: rgba(14,127,212,0.2); color: var(--teal2); }
+  .ct-bar  { background: rgba(245,166,35,0.2); color: var(--gold); }
+  .ct-pie  { background: rgba(168,85,247,0.2); color: var(--purple); }
+  .ct-area { background: rgba(0,196,140,0.2); color: var(--emerald); }
+  .ct-donut { background: rgba(255,77,109,0.2); color: var(--crimson); }
+
+  canvas { display: block; }
+
+  /* ── MINI TABLE ── */
+  .mini-table { width: 100%; border-collapse: collapse; }
+  .mini-table th {
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    padding: 6px 8px; border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .mini-table td {
+    font-size: 11px; padding: 7px 8px;
+    border-bottom: 1px solid rgba(14,127,212,0.06);
+    color: var(--text2);
+  }
+  .mini-table tr:hover td { background: rgba(14,127,212,0.06); color: var(--text); }
+  .mini-table .num { text-align: right; font-family: 'Rajdhani', sans-serif; font-size: 13px; color: var(--text); }
+  .mini-table .pct { text-align: right; font-size: 10px; color: var(--teal2); }
+  .rank { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px; font-size:9px; font-weight:700; background: rgba(14,127,212,0.15); color: var(--teal2); margin-right:5px; }
+  .rank-1 { background: rgba(245,166,35,0.2); color: var(--gold); }
+  .rank-2 { background: rgba(141,141,141,0.2); color: #aaa; }
+  .rank-3 { background: rgba(205,127,50,0.2); color: #cd7f32; }
+
+  /* ── REGION BARS ── */
+  .region-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .region-label { font-size: 11px; color: var(--text2); width: 80px; flex-shrink:0; }
+  .region-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+  .region-bar { height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .region-val { font-family: 'Rajdhani', sans-serif; font-size: 12px; color: var(--text); width: 70px; text-align:right; flex-shrink:0; }
+
+  /* ── PORTER PAGES ── */
+  .force-hero {
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .force-hero::before {
+    content:'';
+    position:absolute; right:-40px; top:-40px;
+    width:200px; height:200px; border-radius:50%;
+    opacity:0.06;
+  }
+  .force-hero-left { z-index:1; }
+  .force-hero-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 32px; font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .force-hero-sub { font-size: 13px; margin-top: 8px; line-height: 1.5; max-width: 600px; }
+  .force-score-wrap { z-index:1; text-align:center; }
+  .force-score-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 64px; font-weight: 700;
+    line-height: 1;
+  }
+  .force-score-lbl { font-size: 11px; letter-spacing: 1px; opacity: 0.7; text-transform: uppercase; }
+  .threat-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; margin-top: 12px;
+  }
+
+  /* ── GAUGE ── */
+  .gauge-wrap { position:relative; display:inline-block; }
+  .gauge-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px; font-weight: 600;
+    text-align: center; margin-top: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── DONUT CENTER ── */
+  .donut-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .donut-center-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 700;
+  }
+  .donut-center-lbl { font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+
+  /* ── DETAIL GRID ── */
+  .detail-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .detail-item-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
+  .detail-item-val { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; }
+  .detail-item-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+  /* ── THREAT METER ── */
+  .threat-meter { margin-bottom: 12px; }
+  .tm-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .tm-label { font-size: 11px; color: var(--text2); }
+  .tm-val { font-size: 11px; font-weight: 700; }
+  .tm-track { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+  .tm-fill { height: 100%; border-radius: 4px; }
+
+  /* ── LEVEL PILLS ── */
+  .level-pill {
+    display: inline-block;
+    padding: 2px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .level-high { background: rgba(255,77,109,0.2); color: var(--crimson); border: 1px solid rgba(255,77,109,0.3); }
+  .level-med  { background: rgba(245,166,35,0.2); color: var(--gold); border: 1px solid rgba(245,166,35,0.3); }
+  .level-low  { background: rgba(0,196,140,0.2); color: var(--emerald); border: 1px solid rgba(0,196,140,0.3); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy); }
+  ::-webkit-scrollbar-thumb { background: var(--slate2); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1200px) {
+    .kpi-row { grid-template-columns: repeat(3, 1fr); }
+    .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">EP<span>BIS</span></div>
+  <div class="tabs">
+    <div class="tab active" onclick="showPage('sales')" id="tab-sales">
+      <span class="tab-icon">📊</span> Sales Performance
+      <span class="badge badge-sales">KPI</span>
+    </div>
+    <div class="tab" onclick="showPage('p1')" id="tab-p1">
+      <span class="tab-icon">🏭</span> Supplier Power
+      <span class="badge badge-p1">Force 1</span>
+    </div>
+    <div class="tab" onclick="showPage('p2')" id="tab-p2">
+      <span class="tab-icon">🛒</span> Buyer Power
+      <span class="badge badge-p2">Force 2</span>
+    </div>
+    <div class="tab" onclick="showPage('p3')" id="tab-p3">
+      <span class="tab-icon">🚪</span> New Entrants
+      <span class="badge badge-p3">Force 3</span>
+    </div>
+    <div class="tab" onclick="showPage('p4')" id="tab-p4">
+      <span class="tab-icon">🔄</span> Substitutes
+      <span class="badge badge-p4">Force 4</span>
+    </div>
+    <div class="tab" onclick="showPage('p5')" id="tab-p5">
+      <span class="tab-icon">⚔️</span> Rivalry
+      <span class="badge badge-p5">Force 5</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-tag"><div class="live-dot"></div>LIVE</div>
+    <div class="date-tag">FY 2022–2024 · India Retail</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 1: SALES PERFORMANCE -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page active" id="page-sales">
+  <div class="page-header">
+    <div>
+      <div class="page-title" style="color:var(--teal2)">SALES PERFORMANCE & KPI OVERVIEW</div>
+      <div class="page-subtitle">EPBIS RETAIL ANALYTICS · 165,000 TRANSACTIONS · 38 BRANDS · 6 REGIONS</div>
+      <div class="color-bar" style="background: linear-gradient(90deg, var(--teal), var(--teal2), var(--gold)); width:300px;"></div>
+    </div>
+    <div class="page-meta">Total Period: 2022 – 2024<br>Data Source: Star Schema</div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card" style="--accent-color:var(--teal)">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value" style="color:var(--teal2)">₹145.4 Cr</div>
+      <div class="kpi-sub"><span class="delta-up">↑ 1.1%</span> YoY Growth</div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--emerald)">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value" style="color:var(--emerald)">₹26.4 Cr</div>
+      <div class="kpi-sub"><span class="delta-up">18.2%</span> GP Margin</div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--gold)">
+      <div class="kpi-label">Total Orders</div>
+      <div class="kpi-value" style="color:var(--gold)">1,65,000</div>
+      <div class="kpi-sub"><span class="delta-up">55K</span> / Year Avg</div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--purple)">
+      <div class="kpi-label">Avg Order Value</div>
+      <div class="kpi-value" style="color:var(--purple)">₹8,812</div>
+      <div class="kpi-sub">Per Transaction</div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--crimson)">
+      <div class="kpi-label">Total Cost</div>
+      <div class="kpi-value" style="color:var(--crimson)">₹118.9 Cr</div>
+      <div class="kpi-sub"><span style="color:var(--text3)">81.8%</span> of Revenue</div>
+    </div>
+    <div class="kpi-card" style="--accent-color:var(--orange)">
+      <div class="kpi-label">Active Brands</div>
+      <div class="kpi-value" style="color:var(--orange)">38</div>
+      <div class="kpi-sub">6 Regions · 9 Categories</div>
+    </div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="grid-2-1">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Monthly Revenue Trend</div>
+          <div class="chart-card-sub">All 3 Years Overlaid (INR)</div>
+        </div>
+        <span class="chart-tag ct-line">Line</span>
+      </div>
+      <canvas id="monthlyTrend" height="130"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Revenue by Year</div>
+          <div class="chart-card-sub">Annual Comparison</div>
+        </div>
+        <span class="chart-tag ct-bar">Bar</span>
+      </div>
+      <canvas id="yearBar" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Payment Mode Split</div>
+          <div class="chart-card-sub">Revenue Share %</div>
+        </div>
+        <span class="chart-tag ct-donut">Donut</span>
+      </div>
+      <div style="position:relative;">
+        <canvas id="paymentDonut" height="180"></canvas>
+        <div class="donut-center">
+          <div class="donut-center-val" style="color:var(--teal2)">5</div>
+          <div class="donut-center-lbl">MODES</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Retail Category Revenue</div>
+          <div class="chart-card-sub">INR Split</div>
+        </div>
+        <span class="chart-tag ct-pie">Pie</span>
+      </div>
+      <canvas id="categoryPie" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Quarterly Revenue</div>
+          <div class="chart-card-sub">Q1–Q4 by Year</div>
+        </div>
+        <span class="chart-tag ct-bar">Bar</span>
+      </div>
+      <canvas id="quarterBar" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 4 -->
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Top 8 Brands by Revenue</div>
+          <div class="chart-card-sub">INR · Ranked</div>
+        </div>
+        <span class="chart-tag ct-bar">Bar</span>
+      </div>
+      <canvas id="brandBar" height="170"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div><div class="chart-card-title">Regional Performance</div><div class="chart-card-sub">Revenue vs Gross Profit by Region</div></div>
+        <span class="chart-tag ct-bar">Bar</span>
+      </div>
+      <canvas id="regionBar" height="170"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 2: PORTER FORCE 1 — SUPPLIER POWER -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-p1">
+  <div class="force-hero" style="background:linear-gradient(135deg,rgba(245,166,35,0.08),rgba(245,166,35,0.03));border-color:rgba(245,166,35,0.3);">
+    <div class="force-hero-left">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">Porter's Five Forces · Force 1</div>
+      <div class="force-hero-title" style="color:var(--gold)">🏭 BARGAINING POWER<br>OF SUPPLIERS</div>
+      <div class="force-hero-sub" style="color:var(--text2);">Analysis of supplier dependency, concentration, and switching costs across EPBIS retail categories. High supplier concentration limits negotiation leverage for retailers.</div>
+      <div class="threat-badge" style="background:rgba(255,77,109,0.15);color:var(--crimson);border:1px solid rgba(255,77,109,0.3);">
+        🔴 HIGH THREAT LEVEL
+      </div>
+    </div>
+    <div class="force-score-wrap">
+      <div class="force-score-num" style="color:var(--gold)">8.5</div>
+      <div class="force-score-lbl" style="color:var(--text3)">Supplier Power<br>Score / 10</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Supplier Dependency Level</div><div class="chart-card-sub">Store Count Distribution</div></div><span class="chart-tag ct-donut">Donut</span></div>
+      <div style="position:relative;">
+        <canvas id="supplierDep" height="190"></canvas>
+        <div class="donut-center"><div class="donut-center-val" style="color:var(--gold)">65%</div><div class="donut-center-lbl">HIGH</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Supplier Concentration Score</div><div class="chart-card-sub">By Retail Category (Avg)</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="supplierConc" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Switching Cost Level</div><div class="chart-card-sub">Store Count · Supplier Lock-in</div></div><span class="chart-tag ct-pie">Pie</span></div>
+      <canvas id="switchCost" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Threat Meters by Category</div><div class="chart-card-sub">Supplier Power Indicators</div></div></div>
+      <div style="margin-top:8px;">
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Electronics</span><span class="tm-val" style="color:var(--crimson)">HIGH <span class="level-pill level-high">3.0/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:100%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Jewellery</span><span class="tm-val" style="color:var(--gold)">MED <span class="level-pill level-med">1.3/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:43%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion</span><span class="tm-val" style="color:var(--gold)">MED <span class="level-pill level-med">2.0/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:67%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Home & Furniture</span><span class="tm-val" style="color:var(--crimson)">HIGH <span class="level-pill level-high">3.0/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:100%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & FMCG</span><span class="tm-val" style="color:var(--crimson)">HIGH <span class="level-pill level-high">3.0/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:100%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion Retail</span><span class="tm-val" style="color:var(--crimson)">HIGH <span class="level-pill level-high">3.0/3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:100%;background:var(--crimson)"></div></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Key Insights</div><div class="chart-card-sub">Supplier Power Analysis Summary</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="detail-item"><div class="detail-item-label">High Dependency Stores</div><div class="detail-item-val" style="color:var(--crimson)">8,494</div><div class="detail-item-sub">65.5% of all stores</div></div>
+        <div class="detail-item"><div class="detail-item-label">Medium Dependency</div><div class="detail-item-val" style="color:var(--gold)">2,929</div><div class="detail-item-sub">22.6% of stores</div></div>
+        <div class="detail-item"><div class="detail-item-label">Low Dependency</div><div class="detail-item-val" style="color:var(--emerald)">1,541</div><div class="detail-item-sub">Only 11.9%</div></div>
+        <div class="detail-item"><div class="detail-item-label">Max Conc. Score</div><div class="detail-item-val" style="color:var(--crimson)">3.0/3</div><div class="detail-item-sub">Electronics, Grocery</div></div>
+        <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">High Switching Cost Stores</div><div class="detail-item-val" style="color:var(--gold)">8,503 Stores (65.6%)</div><div class="detail-item-sub">Switching supplier is expensive — reinforces existing supplier dominance</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 3: PORTER FORCE 2 — BUYER POWER -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-p2">
+  <div class="force-hero" style="background:linear-gradient(135deg,rgba(255,77,109,0.08),rgba(255,77,109,0.03));border-color:rgba(255,77,109,0.3);">
+    <div class="force-hero-left">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--crimson);text-transform:uppercase;margin-bottom:8px;">Porter's Five Forces · Force 2</div>
+      <div class="force-hero-title" style="color:var(--crimson)">🛒 BARGAINING POWER<br>OF BUYERS</div>
+      <div class="force-hero-sub" style="color:var(--text2);">Analysis of customer payment behavior, switching costs, brand loyalty, and average order values. High buyer diversity reduces individual buyer power but payment mode variety signals informed consumers.</div>
+      <div class="threat-badge" style="background:rgba(245,166,35,0.15);color:var(--gold);border:1px solid rgba(245,166,35,0.3);">
+        🟡 MODERATE THREAT LEVEL
+      </div>
+    </div>
+    <div class="force-score-wrap">
+      <div class="force-score-num" style="color:var(--crimson)">5.8</div>
+      <div class="force-score-lbl" style="color:var(--text3)">Buyer Power<br>Score / 10</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Brand Loyalty Distribution</div><div class="chart-card-sub">Stores by Loyalty Level</div></div><span class="chart-tag ct-donut">Donut</span></div>
+      <div style="position:relative;">
+        <canvas id="brandLoyalty" height="190"></canvas>
+        <div class="donut-center"><div class="donut-center-val" style="color:var(--crimson)">59%</div><div class="donut-center-lbl">LOW</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Payment Mode Revenue</div><div class="chart-card-sub">Buyer Preference Split (INR)</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="paymentRevBar" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Avg Order Value by Payment</div><div class="chart-card-sub">Buyer Spend Power</div></div><span class="chart-tag ct-area">Area</span></div>
+      <canvas id="aovPayment" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Buyer Power Indicators</div><div class="chart-card-sub">Threat Level by Dimension</div></div></div>
+      <div style="margin-top:8px;">
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Brand Loyalty (Low)</span><span class="tm-val" style="color:var(--crimson)">HIGH THREAT <span class="level-pill level-high">59%</span></span></div><div class="tm-track"><div class="tm-fill" style="width:59%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Payment Diversity</span><span class="tm-val" style="color:var(--gold)">MOD THREAT <span class="level-pill level-med">5 Modes</span></span></div><div class="tm-track"><div class="tm-fill" style="width:60%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Credit Card Dominance</span><span class="tm-val" style="color:var(--gold)">MOD THREAT <span class="level-pill level-med">28.2%</span></span></div><div class="tm-track"><div class="tm-fill" style="width:28%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">UPI Adoption</span><span class="tm-val" style="color:var(--teal2)">LOW RISK <span class="level-pill level-low">25.6%</span></span></div><div class="tm-track"><div class="tm-fill" style="width:26%;background:var(--teal2)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">EMI Dependence</span><span class="tm-val" style="color:var(--gold)">MOD THREAT <span class="level-pill level-med">22.2%</span></span></div><div class="tm-track"><div class="tm-fill" style="width:22%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">High Loyalty Stores</span><span class="tm-val" style="color:var(--emerald)">FAVORABLE <span class="level-pill level-low">5,310</span></span></div><div class="tm-track"><div class="tm-fill" style="width:41%;background:var(--emerald)"></div></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Buyer Power Metrics</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="detail-item"><div class="detail-item-label">Low Loyalty Stores</div><div class="detail-item-val" style="color:var(--crimson)">7,654</div><div class="detail-item-sub">Buyers easily switch brands</div></div>
+        <div class="detail-item"><div class="detail-item-label">High Loyalty Stores</div><div class="detail-item-val" style="color:var(--emerald)">5,310</div><div class="detail-item-sub">Strong brand lock-in</div></div>
+        <div class="detail-item"><div class="detail-item-label">Avg Order Value</div><div class="detail-item-val" style="color:var(--gold)">₹8,812</div><div class="detail-item-sub">Per transaction</div></div>
+        <div class="detail-item"><div class="detail-item-label">Top Payment Mode</div><div class="detail-item-val" style="color:var(--teal2)">Credit</div><div class="detail-item-sub">₹41 Cr revenue share</div></div>
+        <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">Verdict</div><div class="detail-item-val" style="font-size:14px;color:var(--gold)">Moderate Buyer Power</div><div class="detail-item-sub">Low loyalty amplifies switching risk; however, diverse payment acceptance and high AOV segments indicate captive premium buyers.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 4: PORTER FORCE 3 — NEW ENTRANTS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-p3">
+  <div class="force-hero" style="background:linear-gradient(135deg,rgba(0,196,140,0.08),rgba(0,196,140,0.03));border-color:rgba(0,196,140,0.3);">
+    <div class="force-hero-left">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--emerald);text-transform:uppercase;margin-bottom:8px;">Porter's Five Forces · Force 3</div>
+      <div class="force-hero-title" style="color:var(--emerald)">🚪 THREAT OF<br>NEW ENTRANTS</div>
+      <div class="force-hero-sub" style="color:var(--text2);">Entry barriers including economies of scale, capital requirements, and brand strength. Low entry barriers across most retail categories signal significant threat from new players entering the market.</div>
+      <div class="threat-badge" style="background:rgba(255,77,109,0.15);color:var(--crimson);border:1px solid rgba(255,77,109,0.3);">
+        🔴 HIGH THREAT LEVEL
+      </div>
+    </div>
+    <div class="force-score-wrap">
+      <div class="force-score-num" style="color:var(--emerald)">7.2</div>
+      <div class="force-score-lbl" style="color:var(--text3)">Entry Threat<br>Score / 10</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Entry Barrier Level</div><div class="chart-card-sub">Store Count Distribution</div></div><span class="chart-tag ct-donut">Donut</span></div>
+      <div style="position:relative;">
+        <canvas id="entryBarrier" height="190"></canvas>
+        <div class="donut-center"><div class="donut-center-val" style="color:var(--crimson)">59%</div><div class="donut-center-lbl">LOW</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Economies of Scale Level</div><div class="chart-card-sub">By Category — Scale Protection</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="econScale" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Market Share Concentration</div><div class="chart-card-sub">Avg % by Retail Category</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="marketShare" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Entry Threat by Category</div></div></div>
+      <div style="margin-top:8px;">
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion (Low Barrier)</span><span class="tm-val" style="color:var(--crimson)">HIGH THREAT</span></div><div class="tm-track"><div class="tm-fill" style="width:85%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & FMCG (Low)</span><span class="tm-val" style="color:var(--crimson)">HIGH THREAT</span></div><div class="tm-track"><div class="tm-fill" style="width:88%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Electronics (Low-Med)</span><span class="tm-val" style="color:var(--gold)">MOD THREAT</span></div><div class="tm-track"><div class="tm-fill" style="width:55%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Jewellery (High Capital)</span><span class="tm-val" style="color:var(--emerald)">LOW THREAT</span></div><div class="tm-track"><div class="tm-fill" style="width:25%;background:var(--emerald)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Home & Furniture</span><span class="tm-val" style="color:var(--gold)">MOD THREAT</span></div><div class="tm-track"><div class="tm-fill" style="width:50%;background:var(--gold)"></div></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Barrier Breakdown</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="detail-item"><div class="detail-item-label">Low Barrier Stores</div><div class="detail-item-val" style="color:var(--crimson)">7,697</div><div class="detail-item-sub">59.4% — easy entry market</div></div>
+        <div class="detail-item"><div class="detail-item-label">Medium Barrier</div><div class="detail-item-val" style="color:var(--gold)">4,463</div><div class="detail-item-sub">34.4% of stores</div></div>
+        <div class="detail-item"><div class="detail-item-label">High Barrier</div><div class="detail-item-val" style="color:var(--emerald)">804</div><div class="detail-item-sub">Only 6.2% of market</div></div>
+        <div class="detail-item"><div class="detail-item-label">Max Market Share</div><div class="detail-item-val" style="color:var(--gold)">7.5%</div><div class="detail-item-sub">Home & Furniture</div></div>
+        <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">Verdict</div><div class="detail-item-val" style="font-size:14px;color:var(--crimson)">High New Entrant Threat</div><div class="detail-item-sub">59% of the market has LOW entry barriers. Fashion and Grocery sectors are particularly vulnerable to new digital-first and D2C entrants.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 5: PORTER FORCE 4 — SUBSTITUTES -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-p4">
+  <div class="force-hero" style="background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(168,85,247,0.03));border-color:rgba(168,85,247,0.3);">
+    <div class="force-hero-left">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--purple);text-transform:uppercase;margin-bottom:8px;">Porter's Five Forces · Force 4</div>
+      <div class="force-hero-title" style="color:var(--purple)">🔄 THREAT OF<br>SUBSTITUTES</div>
+      <div class="force-hero-sub" style="color:var(--text2);">Examination of substitute product threats across categories. The overwhelming dominance of HIGH substitute threats signals intense cross-category and online competition alternatives to physical retail.</div>
+      <div class="threat-badge" style="background:rgba(255,77,109,0.15);color:var(--crimson);border:1px solid rgba(255,77,109,0.3);">
+        🔴 VERY HIGH THREAT LEVEL
+      </div>
+    </div>
+    <div class="force-score-wrap">
+      <div class="force-score-num" style="color:var(--purple)">9.1</div>
+      <div class="force-score-lbl" style="color:var(--text3)">Substitute Threat<br>Score / 10</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Substitute Threat Level</div><div class="chart-card-sub">Across All Stores</div></div><span class="chart-tag ct-donut">Donut</span></div>
+      <div style="position:relative;">
+        <canvas id="substituteThreat" height="190"></canvas>
+        <div class="donut-center"><div class="donut-center-val" style="color:var(--crimson)">67%</div><div class="donut-center-lbl">HIGH</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Revenue vs Substitute Risk</div><div class="chart-card-sub">Category Revenue with Threat Overlay</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="subRevRisk" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Competitive Intensity Score</div><div class="chart-card-sub">Proxy for Substitute Availability</div></div><span class="chart-tag ct-area">Line</span></div>
+      <canvas id="compIntensity" height="190"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Substitute Threat by Category</div></div></div>
+      <div style="margin-top:8px;">
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Electronics</span><span class="tm-val" style="color:var(--crimson)">VERY HIGH <span class="level-pill level-high">CI: 7.8</span></span></div><div class="tm-track"><div class="tm-fill" style="width:92%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion</span><span class="tm-val" style="color:var(--crimson)">VERY HIGH <span class="level-pill level-high">CI: 6.3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:85%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & Gen. Merch</span><span class="tm-val" style="color:var(--crimson)">EXTREME <span class="level-pill level-high">CI: 9.3</span></span></div><div class="tm-track"><div class="tm-fill" style="width:98%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Jewellery</span><span class="tm-val" style="color:var(--gold)">MODERATE <span class="level-pill level-med">CI: 6.7</span></span></div><div class="tm-track"><div class="tm-fill" style="width:55%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Home & Furniture</span><span class="tm-val" style="color:var(--gold)">MODERATE <span class="level-pill level-med">CI: 5.9</span></span></div><div class="tm-track"><div class="tm-fill" style="width:50%;background:var(--gold)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & FMCG</span><span class="tm-val" style="color:var(--crimson)">EXTREME <span class="level-pill level-high">CI: 8.9</span></span></div><div class="tm-track"><div class="tm-fill" style="width:95%;background:var(--crimson)"></div></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Substitute Metrics Summary</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="detail-item"><div class="detail-item-label">High Threat Stores</div><div class="detail-item-val" style="color:var(--crimson)">8,657</div><div class="detail-item-sub">66.8% of all stores</div></div>
+        <div class="detail-item"><div class="detail-item-label">Low Threat Stores</div><div class="detail-item-val" style="color:var(--emerald)">2,809</div><div class="detail-item-sub">21.7% relatively safe</div></div>
+        <div class="detail-item"><div class="detail-item-label">Max CI Score</div><div class="detail-item-val" style="color:var(--crimson)">9.35</div><div class="detail-item-sub">Grocery & Gen. Merch</div></div>
+        <div class="detail-item"><div class="detail-item-label">Min CI Score</div><div class="detail-item-val" style="color:var(--emerald)">5.99</div><div class="detail-item-sub">Home & Furniture</div></div>
+        <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">Critical Finding</div><div class="detail-item-val" style="font-size:14px;color:var(--purple)">Digital Disruption Risk</div><div class="detail-item-sub">Online marketplaces (Amazon, Flipkart, Meesho) act as direct substitutes across ALL categories, especially Electronics (₹95Cr exposed) and Fashion.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 6: PORTER FORCE 5 — COMPETITIVE RIVALRY -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-p5">
+  <div class="force-hero" style="background:linear-gradient(135deg,rgba(249,115,22,0.08),rgba(249,115,22,0.03));border-color:rgba(249,115,22,0.3);">
+    <div class="force-hero-left">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:8px;">Porter's Five Forces · Force 5</div>
+      <div class="force-hero-title" style="color:var(--orange)">⚔️ COMPETITIVE<br>RIVALRY INTENSITY</div>
+      <div class="force-hero-sub" style="color:var(--text2);">Measurement of inter-firm competition using competitive intensity scores, market share fragmentation, and brand count. With 38 brands and high competitive intensity across categories, rivalry is fierce.</div>
+      <div class="threat-badge" style="background:rgba(255,77,109,0.15);color:var(--crimson);border:1px solid rgba(255,77,109,0.3);">
+        🔴 EXTREME RIVALRY
+      </div>
+    </div>
+    <div class="force-score-wrap">
+      <div class="force-score-num" style="color:var(--orange)">9.0</div>
+      <div class="force-score-lbl" style="color:var(--text3)">Rivalry Score<br>Score / 10</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Competitive Intensity Score</div><div class="chart-card-sub">By Retail Category (avg /10)</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="rivalryCI" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Market Share Fragmentation</div><div class="chart-card-sub">Avg % — Lower = More Fragmented</div></div><span class="chart-tag ct-bar">Bar</span></div>
+      <canvas id="mktShareFrag" height="190"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Revenue by Top Brands</div><div class="chart-card-sub">Competitive Revenue Landscape</div></div><span class="chart-tag ct-donut">Donut</span></div>
+      <div style="position:relative;">
+        <canvas id="rivalryDonut" height="190"></canvas>
+        <div class="donut-center"><div class="donut-center-val" style="color:var(--orange)">38</div><div class="donut-center-lbl">BRANDS</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-1-1">
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Rivalry Intensity by Category</div></div></div>
+      <div style="margin-top:8px;">
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & Gen. Merch</span><span class="tm-val" style="color:var(--crimson)">EXTREME <span class="level-pill level-high">9.35/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:93%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Grocery & FMCG</span><span class="tm-val" style="color:var(--crimson)">EXTREME <span class="level-pill level-high">8.93/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:89%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion Retail</span><span class="tm-val" style="color:var(--crimson)">VERY HIGH <span class="level-pill level-high">8.83/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:88%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Fashion & Lifestyle</span><span class="tm-val" style="color:var(--crimson)">VERY HIGH <span class="level-pill level-high">7.88/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:79%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Electronics</span><span class="tm-val" style="color:var(--crimson)">HIGH <span class="level-pill level-high">7.81/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:78%;background:var(--crimson)"></div></div></div>
+        <div class="threat-meter"><div class="tm-header"><span class="tm-label">Home & Furniture</span><span class="tm-val" style="color:var(--gold)">MODERATE <span class="level-pill level-med">5.99/10</span></span></div><div class="tm-track"><div class="tm-fill" style="width:60%;background:var(--gold)"></div></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header"><div><div class="chart-card-title">Rivalry Summary</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="detail-item"><div class="detail-item-label">Total Competing Brands</div><div class="detail-item-val" style="color:var(--orange)">38</div><div class="detail-item-sub">Across 9 categories</div></div>
+        <div class="detail-item"><div class="detail-item-label">Top Brand Share</div><div class="detail-item-val" style="color:var(--crimson)">16.4%</div><div class="detail-item-sub">Samsung dominates</div></div>
+        <div class="detail-item"><div class="detail-item-label">Avg CI Score</div><div class="detail-item-val" style="color:var(--crimson)">7.7/10</div><div class="detail-item-sub">Across all categories</div></div>
+        <div class="detail-item"><div class="detail-item-label">Max Market Share</div><div class="detail-item-val" style="color:var(--gold)">7.5%</div><div class="detail-item-sub">Home & Furniture</div></div>
+        <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">Strategic Implication</div><div class="detail-item-val" style="font-size:14px;color:var(--orange)">Fragmented, Highly Competitive</div><div class="detail-item-sub">No single brand exceeds 16.4% share. Low market concentration means price wars, promotional intensity, and margin pressure. Differentiation is critical for survival.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── COLOR PALETTE ──────────────────────────────────────────
+const COLORS = {
+  teal:    '#0E7FD4', teal2: '#1AA3E8',
+  gold:    '#F5A623', emerald: '#00C48C',
+  crimson: '#FF4D6D', purple:  '#A855F7',
+  orange:  '#F97316', navy:    '#0A1628',
+  slate:   '#1E2D42',
+};
+const PALETTE = ['#0E7FD4','#F5A623','#00C48C','#FF4D6D','#A855F7','#F97316','#1AA3E8','#FFD700','#26D0CE','#FF6B9D'];
+const defaultFont = { family: "'DM Sans', sans-serif", size: 11, color: '#8BA4C0' };
+Chart.defaults.color = '#8BA4C0';
+Chart.defaults.font  = { family: "'DM Sans', sans-serif", size: 11 };
+
+function gridLines() { return { color: 'rgba(14,127,212,0.1)', drawBorder: false }; }
+function legend() { return { labels: { color: '#8BA4C0', boxWidth: 10, padding: 12, font: { size: 10 } } }; }
+function tooltip() {
+  return {
+    backgroundColor: '#0F2040',
+    borderColor: 'rgba(14,127,212,0.4)',
+    borderWidth: 1,
+    titleColor: '#E8F1FF',
+    bodyColor: '#8BA4C0',
+    padding: 10,
+    cornerRadius: 8,
+  };
+}
+
+// ── PAGE SWITCH ────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SALES PAGE CHARTS
+// ═══════════════════════════════════════════════════════════
+
+// Monthly Trend
+new Chart(document.getElementById('monthlyTrend'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    datasets: [
+      { label: '2022', data: [121731571/12,121731571/12,121731571/12,111707505/12,111707505/12,111707505/12,114670441/12,114670441/12,114670441/12,134036870/12,134036870/12,134036870/12], borderColor: COLORS.teal, backgroundColor: 'rgba(14,127,212,0.08)', tension: 0.4, borderWidth: 2, fill: false, pointRadius: 2 },
+      { label: '2023', data: [42268095,41413225,36573821,37422776,36699684,33311241,33505281,39872885,40191161,49530094,50076156,43340258], borderColor: COLORS.gold, backgroundColor: 'rgba(245,166,35,0.08)', tension: 0.4, borderWidth: 2.5, fill: true, pointRadius: 3 },
+      { label: '2024', data: [124391115/12,124391115/12,124391115/12,112099301/12,112099301/12,112099301/12,110334836/12,110334836/12,110334836/12,140745092/12,140745092/12,140745092/12], borderColor: COLORS.emerald, backgroundColor: 'rgba(0,196,140,0.05)', tension: 0.4, borderWidth: 2, fill: false, pointRadius: 2 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: legend(), tooltip: tooltip() },
+    scales: {
+      x: { grid: gridLines(), ticks: { color: '#5A7A9A' } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(1) + 'Cr' } }
+    }
+  }
+});
+
+// Year Bar
+new Chart(document.getElementById('yearBar'), {
+  type: 'bar',
+  data: {
+    labels: ['2022', '2023', '2024'],
+    datasets: [{
+      label: 'Revenue (INR)',
+      data: [482146387, 484204677, 487570344],
+      backgroundColor: [COLORS.teal, COLORS.gold, COLORS.emerald],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A' } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } }
+    }
+  }
+});
+
+// Payment Donut
+new Chart(document.getElementById('paymentDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Credit Card','UPI','EMI','Cash','Debit Card'],
+    datasets: [{ data: [409942072,372580866,323204014,177054373,171140083], backgroundColor: PALETTE, borderWidth: 0, hoverOffset: 8 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '68%',
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: { ...tooltip(), callbacks: { label: c => c.label + ': ₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } }
+  }
+});
+
+// Category Pie
+new Chart(document.getElementById('categoryPie'), {
+  type: 'pie',
+  data: {
+    labels: ['Electronics','Jewellery','Fashion','Home & Furn.','Others'],
+    datasets: [{ data: [949496955,213050085,187950074,70327868,33096290], backgroundColor: PALETTE, borderWidth: 0 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: { ...tooltip(), callbacks: { label: c => c.label + ': ₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } }
+  }
+});
+
+// Quarterly Bar
+new Chart(document.getElementById('quarterBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Q1','Q2','Q3','Q4'],
+    datasets: [
+      { label: '2022', data: [121731571,111707505,114670441,134036870], backgroundColor: COLORS.teal, borderRadius: 4 },
+      { label: '2023', data: [120255141,107433701,113569327,142946508], backgroundColor: COLORS.gold, borderRadius: 4 },
+      { label: '2024', data: [124391115,112099301,110334836,140745092], backgroundColor: COLORS.emerald, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: legend(), tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A' } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } }
+    }
+  }
+});
+
+// Brand Bar
+new Chart(document.getElementById('brandBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Samsung','Tanishq','Croma','Reliance Digital','Bajaj Elec.','Girias','Vijay Sales','Great Eastern'],
+    datasets: [{ label: 'Revenue (INR)', data: [238913569,122066858,93188797,91739482,91314920,90577267,87549973,81214320], backgroundColor: PALETTE, borderRadius: 5, borderSkipped: false }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false }, tooltip: { ...tooltip(), callbacks: { label: c => '₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } },
+    scales: {
+      x: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } },
+      y: { grid: { display: false }, ticks: { color: '#8BA4C0', font: { size: 10 } } }
+    }
+  }
+});
+
+// Region Bar
+new Chart(document.getElementById('regionBar'), {
+  type: 'bar',
+  data: {
+    labels: ['South','West','North','East','North East','Central'],
+    datasets: [
+      { label: 'Revenue', data: [562626381,428032241,190879848,181440147,58696788,32246003], backgroundColor: COLORS.teal, borderRadius: 4 },
+      { label: 'Gross Profit', data: [94332201,89497161,51866937,19217174,5675043,3517574], backgroundColor: COLORS.gold, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: legend(), tooltip: { ...tooltip(), callbacks: { label: c => c.dataset.label + ': ₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A' } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORCE 1: SUPPLIER POWER
+// ═══════════════════════════════════════════════════════════
+
+new Chart(document.getElementById('supplierDep'), {
+  type: 'doughnut',
+  data: {
+    labels: ['High','Medium','Low'],
+    datasets: [{ data: [8494,2929,1541], backgroundColor: [COLORS.crimson, COLORS.gold, COLORS.emerald], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '65%',
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: tooltip() }
+  }
+});
+
+new Chart(document.getElementById('supplierConc'), {
+  type: 'bar',
+  data: {
+    labels: ['Electronics','Fashion','Jewellery','Fashion & LS','Grocery','Home & Furn.'],
+    datasets: [{ label: 'Avg Concentration Score', data: [3.0,2.04,1.31,3.0,3.0,3.0], backgroundColor: [COLORS.crimson,COLORS.gold,COLORS.emerald,COLORS.crimson,COLORS.crimson,COLORS.crimson], borderRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), max: 3.5, ticks: { color: '#5A7A9A' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('switchCost'), {
+  type: 'pie',
+  data: {
+    labels: ['High','Medium','Low'],
+    datasets: [{ data: [8503,2920,1541], backgroundColor: [COLORS.crimson, COLORS.gold, COLORS.emerald], borderWidth: 0 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: tooltip() }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORCE 2: BUYER POWER
+// ═══════════════════════════════════════════════════════════
+
+new Chart(document.getElementById('brandLoyalty'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Low Loyalty','High Loyalty'],
+    datasets: [{ data: [7654,5310], backgroundColor: [COLORS.crimson, COLORS.emerald], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '65%',
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: tooltip() }
+  }
+});
+
+new Chart(document.getElementById('paymentRevBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Credit Card','UPI','EMI','Cash','Debit Card'],
+    datasets: [{ label: 'Revenue (INR)', data: [409942072,372580866,323204014,177054373,171140083], backgroundColor: PALETTE, borderRadius: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: { ...tooltip(), callbacks: { label: c => '₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('aovPayment'), {
+  type: 'line',
+  data: {
+    labels: ['Credit Card','UPI','EMI','Cash','Debit Card'],
+    datasets: [{ label: 'Avg Order Value (INR)', data: [9862, 8950, 14680, 6420, 7340], borderColor: COLORS.purple, backgroundColor: 'rgba(168,85,247,0.12)', fill: true, tension: 0.4, borderWidth: 2.5, pointBackgroundColor: COLORS.purple, pointRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + v.toLocaleString() } }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORCE 3: NEW ENTRANTS
+// ═══════════════════════════════════════════════════════════
+
+new Chart(document.getElementById('entryBarrier'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Low Barrier','Medium Barrier','High Barrier'],
+    datasets: [{ data: [7697,4463,804], backgroundColor: [COLORS.crimson,COLORS.gold,COLORS.emerald], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '65%',
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: tooltip() }
+  }
+});
+
+new Chart(document.getElementById('econScale'), {
+  type: 'bar',
+  data: {
+    labels: ['Electronics','Fashion','Jewellery','Grocery','Home&Furn','F&Lifestyle'],
+    datasets: [{ label: 'Scale Level (High=3)', data: [3,2.5,2,1.5,3,2.5], backgroundColor: [COLORS.emerald,COLORS.teal,COLORS.gold,COLORS.crimson,COLORS.emerald,COLORS.teal], borderRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), max: 4, ticks: { color: '#5A7A9A' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('marketShare'), {
+  type: 'bar',
+  data: {
+    labels: ['Home & Furn','Jewellery','Electronics','Grocery GM','Grocery FMCG','F&Lifestyle','Fashion','Fashion Ret.'],
+    datasets: [{ label: 'Avg Market Share %', data: [7.5,7.21,7.12,6.70,4.06,4.81,2.99,4.05], backgroundColor: PALETTE, borderRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: gridLines(), max: 10, ticks: { color: '#5A7A9A', callback: v => v + '%' } },
+      y: { grid: { display: false }, ticks: { color: '#8BA4C0', font: { size: 9 } } }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORCE 4: SUBSTITUTES
+// ═══════════════════════════════════════════════════════════
+
+new Chart(document.getElementById('substituteThreat'), {
+  type: 'doughnut',
+  data: {
+    labels: ['High Threat','Low Threat','Medium'],
+    datasets: [{ data: [8657,2809,1498], backgroundColor: [COLORS.crimson,COLORS.emerald,COLORS.gold], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '65%',
+    plugins: { legend: { position: 'bottom', ...legend() }, tooltip: tooltip() }
+  }
+});
+
+new Chart(document.getElementById('subRevRisk'), {
+  type: 'bar',
+  data: {
+    labels: ['Electronics','Jewellery','Fashion','Home & Furn.','F&Lifestyle','Grocery'],
+    datasets: [
+      { label: 'Revenue (INR)', data: [949496955,213050085,187950074,70327868,21117156,3981935], backgroundColor: [COLORS.crimson,COLORS.gold,COLORS.crimson,COLORS.gold,COLORS.gold,COLORS.crimson], borderRadius: 5 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: { ...tooltip(), callbacks: { label: c => '₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => '₹' + (v/1e7).toFixed(0) + 'Cr' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('compIntensity'), {
+  type: 'line',
+  data: {
+    labels: ['Electronics','Fashion','F&Lifestyle','Fashion Ret.','Grocery FMCG','Grocery GM','Home & Furn.','Jewellery'],
+    datasets: [{ label: 'Competitive Intensity Score', data: [7.81,6.33,7.88,8.83,8.93,9.35,5.99,6.69], borderColor: COLORS.purple, backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.4, borderWidth: 2.5, pointBackgroundColor: COLORS.purple, pointRadius: 4 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), min: 4, max: 11, ticks: { color: '#5A7A9A' } }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORCE 5: RIVALRY
+// ═══════════════════════════════════════════════════════════
+
+new Chart(document.getElementById('rivalryCI'), {
+  type: 'bar',
+  data: {
+    labels: ['Grocery GM','Grocery FMCG','Fashion Ret.','F&Lifestyle','Electronics','Jewellery','Fashion','Home&Furn.'],
+    datasets: [{ label: 'CI Score', data: [9.35,8.93,8.83,7.88,7.81,6.69,6.33,5.99], backgroundColor: d => d.raw > 8 ? COLORS.crimson : d.raw > 7 ? COLORS.gold : COLORS.teal, borderRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: gridLines(), max: 11, ticks: { color: '#5A7A9A' } },
+      y: { grid: { display: false }, ticks: { color: '#8BA4C0', font: { size: 9 } } }
+    }
+  }
+});
+
+new Chart(document.getElementById('mktShareFrag'), {
+  type: 'bar',
+  data: {
+    labels: ['Home & Furn.','Jewellery','Electronics','Grocery GM','F&Lifestyle','Grocery FMCG','Fashion Ret.','Fashion'],
+    datasets: [{ label: 'Avg Market Share %', data: [7.5,7.21,7.12,6.70,4.81,4.06,4.05,2.99], backgroundColor: COLORS.orange, borderRadius: 5 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: tooltip() },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5A7A9A', font: { size: 9 } } },
+      y: { grid: gridLines(), ticks: { color: '#5A7A9A', callback: v => v + '%' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('rivalryDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Samsung','Tanishq','Croma','Reliance Dig.','Bajaj Elec.','Girias','Vijay Sales','Others (31)'],
+    datasets: [{ data: [238913569,122066858,93188797,91739482,91314920,90577267,87549973,638570542], backgroundColor: [...PALETTE.slice(0,7), '#2C3E50'], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, cutout: '62%',
+    plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 9 }, padding: 8 } }, tooltip: { ...tooltip(), callbacks: { label: c => c.label + ': ₹' + (c.raw/1e7).toFixed(1) + ' Cr' } } }
+  }
+});
+</script>
+</body>
+</html>
